@@ -1,0 +1,26 @@
+# Données (stockées dans HDFS, pas dans Git)
+data/raw/
+data/processed/
+*.parquet
+*.csv
+
+# Modèles ML
+models/
+*.pkl
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Environnements
+.env
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Docker volumes
+docker/volumes/

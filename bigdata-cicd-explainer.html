@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline Big Data CI/CD — Explainer Interactif</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --border: #1e2230;
+    --accent1: #00e5ff;
+    --accent2: #ff6b35;
+    --accent3: #a78bfa;
+    --accent4: #34d399;
+    --accent5: #fbbf24;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --code-bg: #0d1117;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID BG */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative;
+    z-index: 1;
+    padding: 3rem 2rem 2rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  header .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent1);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    background: rgba(0,229,255,0.08);
+    border: 1px solid rgba(0,229,255,0.2);
+    padding: 4px 14px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: 1.2rem;
+  }
+  header h1 {
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 800;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #fff 0%, var(--accent1) 60%, var(--accent3) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.8rem;
+  }
+  header p {
+    color: var(--muted);
+    font-size: 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+    font-weight: 400;
+  }
+
+  /* NAV TABS */
+  .nav-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,12,16,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 0 1rem;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    background: none;
+    border: none;
+    padding: 1rem 1.2rem;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent1); border-bottom-color: var(--accent1); }
+
+  /* CONTENT */
+  .content {
+    position: relative; z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+  .panel { display: none; animation: fadeIn 0.3s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:none; } }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+  .section-title .icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .section-sub {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+    font-weight: 400;
+  }
+
+  /* PIPELINE VISUAL */
+  .pipeline-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 2rem 0;
+  }
+  .pipe-step {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    cursor: pointer;
+  }
+  .pipe-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 60px;
+    flex-shrink: 0;
+  }
+  .pipe-dot {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    border: 2px solid;
+    transition: transform 0.2s, box-shadow 0.2s;
+    z-index: 1;
+  }
+  .pipe-step:hover .pipe-dot { transform: scale(1.1); }
+  .pipe-line {
+    width: 2px;
+    flex: 1;
+    min-height: 20px;
+    background: var(--border);
+    margin: 0 auto;
+  }
+  .pipe-body {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    margin: 0 0 16px 12px;
+    transition: border-color 0.2s;
+  }
+  .pipe-step:hover .pipe-body { border-color: var(--accent1); }
+  .pipe-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; }
+  .pipe-body p { font-size: 0.85rem; color: var(--muted); line-height: 1.5; }
+  .pipe-detail {
+    display: none;
+    margin-top: 0.8rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--border);
+  }
+  .pipe-detail.open { display: block; }
+  .pipe-detail p { color: var(--text); font-size: 0.82rem; line-height: 1.6; margin-bottom: 0.5rem; }
+
+  /* CARDS GRID */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.4rem;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: default;
+  }
+  .card:hover { border-color: var(--accent3); transform: translateY(-2px); }
+  .card-icon { font-size: 1.8rem; margin-bottom: 0.8rem; }
+  .card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .card p { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+  .card .badge {
+    display: inline-block;
+    margin-top: 0.8rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(167,139,250,0.1);
+    color: var(--accent3);
+    border: 1px solid rgba(167,139,250,0.25);
+  }
+
+  /* CODE BLOCK */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.2rem 1.4rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.7;
+    color: #a8b1c2;
+  }
+  .kw { color: #ff6b35; }
+  .fn { color: #00e5ff; }
+  .str { color: #34d399; }
+  .cm { color: #4a5568; font-style: italic; }
+  .num { color: #fbbf24; }
+
+  /* HDFS DIAGRAM */
+  .hdfs-diagram {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.9;
+    color: #a8b1c2;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+  }
+  .hdfs-diagram .hl-blue { color: var(--accent1); }
+  .hdfs-diagram .hl-orange { color: var(--accent2); }
+  .hdfs-diagram .hl-green { color: var(--accent4); }
+  .hdfs-diagram .hl-purple { color: var(--accent3); }
+  .hdfs-diagram .hl-yellow { color: var(--accent5); }
+
+  /* QUIZ */
+  .quiz-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .quiz-q { font-size: 0.9rem; font-weight: 700; margin-bottom: 1rem; }
+  .quiz-q span { color: var(--accent1); font-family: 'JetBrains Mono', monospace; }
+  .quiz-options { display: flex; flex-direction: column; gap: 0.5rem; }
+  .quiz-opt {
+    padding: 0.7rem 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.83rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Syne', sans-serif;
+    color: var(--text);
+    text-align: left;
+  }
+  .quiz-opt:hover { border-color: var(--accent3); background: rgba(167,139,250,0.05); }
+  .quiz-opt.correct { border-color: var(--accent4); background: rgba(52,211,153,0.1); color: var(--accent4); }
+  .quiz-opt.wrong { border-color: var(--accent2); background: rgba(255,107,53,0.1); color: var(--accent2); }
+  .quiz-feedback { margin-top: 0.8rem; font-size: 0.8rem; color: var(--muted); display: none; line-height: 1.5; }
+  .quiz-feedback.show { display: block; }
+  .quiz-score {
+    text-align: center;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--accent1);
+    border-radius: 12px;
+    margin-top: 1.5rem;
+    display: none;
+  }
+  .quiz-score.show { display: block; }
+  .quiz-score .score-num {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--accent1);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* COMPARISON TABLE */
+  .comp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    margin: 1.5rem 0;
+  }
+  .comp-table th {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 0.8rem 1rem;
+    text-align: left;
+    font-weight: 700;
+    color: var(--accent1);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+  }
+  .comp-table td {
+    border: 1px solid var(--border);
+    padding: 0.8rem 1rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .comp-table tr:hover td { background: rgba(255,255,255,0.02); color: var(--text); }
+  .comp-table .green { color: var(--accent4); }
+  .comp-table .orange { color: var(--accent2); }
+
+  /* GLOSSARY */
+  .glossary-item {
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 0;
+  }
+  .glossary-item:last-child { border-bottom: none; }
+  .glossary-term {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--accent1);
+    margin-bottom: 0.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .glossary-def { font-size: 0.83rem; color: var(--muted); line-height: 1.5; }
+
+  /* PROGRESS BAR */
+  .progress-bar {
+    background: var(--border);
+    height: 4px;
+    border-radius: 2px;
+    margin: 1.5rem 0;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent1), var(--accent3));
+    transition: width 0.5s ease;
+  }
+
+  /* ALERT BOX */
+  .alert {
+    border-left: 3px solid;
+    padding: 0.9rem 1.2rem;
+    border-radius: 0 8px 8px 0;
+    margin: 1rem 0;
+    font-size: 0.83rem;
+    line-height: 1.5;
+  }
+  .alert-info { border-color: var(--accent1); background: rgba(0,229,255,0.05); color: var(--text); }
+  .alert-warn { border-color: var(--accent5); background: rgba(251,191,36,0.05); color: var(--text); }
+  .alert-tip { border-color: var(--accent4); background: rgba(52,211,153,0.05); color: var(--text); }
+  .alert strong { font-weight: 700; }
+
+  /* CICD FLOW */
+  .cicd-flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1.5rem 0;
+  }
+  .cicd-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    text-align: center;
+    min-width: 100px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .cicd-box:hover { transform: scale(1.05); }
+  .cicd-box .cb-icon { font-size: 1.2rem; display: block; margin-bottom: 4px; }
+  .cicd-box .cb-label { color: var(--muted); }
+  .cicd-arrow { color: var(--muted); font-size: 1.2rem; }
+
+  @media (max-width: 600px) {
+    .cards-grid { grid-template-columns: 1fr; }
+    .cicd-flow { flex-direction: column; }
+    .cicd-arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag">TP Big Data — Explainer Interactif</div>
+  <h1>Pipeline Big Data CI/CD<br>de bout en bout</h1>
+  <p>HDFS · Spark · MLlib · Git · Docker · GitHub Actions · Azure</p>
+</header>
+
+<nav class="nav-tabs">
+  <button class="tab-btn active" onclick="showTab('pipeline')">🔄 Architecture</button>
+  <button class="tab-btn" onclick="showTab('hdfs')">🗄️ HDFS</button>
+  <button class="tab-btn" onclick="showTab('spark')">⚡ Spark / MLlib</button>
+  <button class="tab-btn" onclick="showTab('cicd')">🤖 CI/CD</button>
+  <button class="tab-btn" onclick="showTab('deploy')">🚀 Déploiement</button>
+  <button class="tab-btn" onclick="showTab('quiz')">🎯 Quiz</button>
+  <button class="tab-btn" onclick="showTab('glossary')">📖 Glossaire</button>
+</nav>
+
+<div class="content">
+
+<!-- ═══════════ PANEL: PIPELINE ═══════════ -->
+<div class="panel active" id="panel-pipeline">
+  <div class="section-title">
+    <div class="icon" style="background:rgba(0,229,255,0.1);color:var(--accent1)">🔄</div>
+    Architecture globale du pipeline
+  </div>
+  <p class="section-sub">Cliquez sur chaque étape pour voir les détails techniques</p>
+
+  <div class="pipeline-flow">
+
+    <div class="pipe-step" onclick="toggleDetail(this)">
+      <div class="pipe-left">
+        <div class="pipe-dot" style="border-color:var(--accent5);background:rgba(251,191,36,0.1);color:var(--accent5)">📦</div>
+        <div class="pipe-line"></div>
+      </div>
+      <div class="pipe-body">
+        <h3 style="color:var(--accent5)">1. Données brutes → HDFS /data/raw/</h3>
+        <p>NYC Taxi TLC — fichiers Parquet (~500 MB/mois). Stockage distribué sur le cluster Hadoop.</p>
+        <div class="pipe-detail">
+          <p>Les fichiers <code>yellow_tripdata_2023-0X.parquet</code> sont téléchargés depuis le CDN TLC et <strong>uploadés dans HDFS</strong> via <code>hdfs dfs -put</code>. HDFS découpe chaque fichier en <strong>blocs de 128 MB</strong> répliqués 3× sur les DataNodes.</p>
+          <p>⚙️ Commande clé : <code>hdfs fsck /data/raw/ -files -blocks -locations</code> pour vérifier la réplication.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="pipe-step" onclick="toggleDetail(this)">
+      <div class="pipe-left">
+        <div class="pipe-dot" style="border-color:var(--accent1);background:rgba(0,229,255,0.1);color:var(--accent1)">⚡</div>
+        <div class="pipe-line"></div>
+      </div>
+      <div class="pipe-body">
+        <h3 style="color:var(--accent1)">2. PySpark — Lecture HDFS + Nettoyage</h3>
+        <p>SparkSession connectée au NameNode. Filtrage des outliers, validation du schéma.</p>
+        <div class="pipe-detail">
+          <p><code>spark.read.parquet("hdfs://namenode:9000/data/raw")</code> crée un DataFrame <strong>distribué</strong> — chaque partition Spark correspond à un bloc HDFS. Le nettoyage filtre : <code>trip_distance ∈ ]0.1, 100[</code>, <code>fare_amount ∈ ]2.5, 500[</code>, passagers 1–6.</p>
+          <p>⚙️ Adaptive Query Execution (<code>spark.sql.adaptive.enabled=true</code>) optimise automatiquement les shuffles.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="pipe-step" onclick="toggleDetail(this)">
+      <div class="pipe-left">
+        <div class="pipe-dot" style="border-color:var(--accent3);background:rgba(167,139,250,0.1);color:var(--accent3)">🧪</div>
+        <div class="pipe-line"></div>
+      </div>
+      <div class="pipe-body">
+        <h3 style="color:var(--accent3)">3. Feature Engineering</h3>
+        <p>Création des variables : trip_duration_min, hour_of_day, is_rush_hour, speed_mph, fare_per_mile…</p>
+        <div class="pipe-detail">
+          <p><strong>Variables calculées :</strong></p>
+          <p>• <code>trip_duration_min</code> = (dropoff - pickup) / 60 → <strong>variable cible</strong><br>
+          • <code>hour_of_day</code>, <code>day_of_week</code>, <code>is_weekend</code> → temporel<br>
+          • <code>is_rush_hour</code> → heures 7-9h et 17-19h<br>
+          • <code>speed_mph</code>, <code>fare_per_mile</code> → ratios</p>
+          <p>Le DataFrame est <strong>partitionné par year/month</strong> avant sauvegarde dans HDFS.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="pipe-step" onclick="toggleDetail(this)">
+      <div class="pipe-left">
+        <div class="pipe-dot" style="border-color:var(--accent4);background:rgba(52,211,153,0.1);color:var(--accent4)">🤖</div>
+        <div class="pipe-line"></div>
+      </div>
+      <div class="pipe-body">
+        <h3 style="color:var(--accent4)">4. MLlib — Entraînement RandomForest</h3>
+        <p>Pipeline distribué : VectorAssembler → RandomForestRegressor. Métriques : RMSE, MAE, R².</p>
+        <div class="pipe-detail">
+          <p>Le modèle est entraîné <strong>sur le cluster Spark</strong> (parallélisme des arbres). Le Pipeline MLlib enchaîne :</p>
+          <p>① <code>VectorAssembler</code> → combine les features en un vecteur dense<br>
+          ② <code>RandomForestRegressor(numTrees=100)</code> → 100 arbres parallèles<br>
+          ③ <code>RegressionEvaluator</code> → calcule RMSE, R²</p>
+          <p>⚙️ Le modèle est sauvegardé dans <code>hdfs://namenode:9000/models/rf_model_v1</code> au format MLlib natif.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="pipe-step" onclick="toggleDetail(this)">
+      <div class="pipe-left">
+        <div class="pipe-dot" style="border-color:var(--accent2);background:rgba(255,107,53,0.1);color:var(--accent2)">💾</div>
+        <div class="pipe-line"></div>
+      </div>
+      <div class="pipe-body">
+        <h3 style="color:var(--accent2)">5. Sauvegarde HDFS + CI/CD</h3>
+        <p>Prédictions en Parquet partitionné. Pipeline CI : lint → tests → Docker build → push.</p>
+        <div class="pipe-detail">
+          <p>Les prédictions sont sauvegardées dans <code>hdfs:///data/processed/predictions/year=2023/month=01/</code>. Le <strong>partitionnement par date</strong> accélère les requêtes futures (partition pruning).</p>
+          <p>⚙️ CI/CD : GitHub Actions déclenche le pipeline sur chaque push. Le job <code>test</code> utilise <code>file://</code> (pas de HDFS réel en CI), suivi du build Docker et du push sur Docker Hub.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="pipe-step" onclick="toggleDetail(this)">
+      <div class="pipe-left">
+        <div class="pipe-dot" style="border-color:var(--muted);background:rgba(100,116,139,0.1);color:var(--muted)">🚀</div>
+      </div>
+      <div class="pipe-body">
+        <h3 style="color:var(--text)">6. Déploiement — SSH ou Azure</h3>
+        <p>Option A : SSH sur VM Linux (Docker + Hadoop). Option B : Azure HDInsight + ADLS Gen2.</p>
+        <div class="pipe-detail">
+          <p><strong>Option SSH :</strong> <code>appleboy/ssh-action</code> se connecte au serveur, fait un <code>git pull</code>, restart le cluster Docker, puis soumet le job Spark via <code>spark-submit</code>.</p>
+          <p><strong>Option Azure :</strong> Upload du code sur ADLS2, soumission via API Livy ou SSH sur HDInsight en <code>--deploy-mode cluster</code> (le driver tourne sur le cluster, pas sur le runner GitHub).</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="alert alert-tip">
+    💡 <strong>Rappel architectural :</strong> HDFS stocke les données, Spark les traite, MLlib entraîne les modèles, Git versionne le code, Docker reproductibilise l'environnement, GitHub Actions automatise, Azure déploie en production.
+  </div>
+</div>
+
+<!-- ═══════════ PANEL: HDFS ═══════════ -->
+<div class="panel" id="panel-hdfs">
+  <div class="section-title">
+    <div class="icon" style="background:rgba(251,191,36,0.1);color:var(--accent5)">🗄️</div>
+    HDFS — Hadoop Distributed File System
+  </div>
+  <p class="section-sub">Architecture distribuée, blocs, réplication, NameNode/DataNode</p>
+
+  <div class="hdfs-diagram">
+<span class="hl-blue">hdfs://namenode:9000/</span><br>
+├── <span class="hl-orange">data/</span><br>
+│   ├── <span class="hl-green">raw/</span>                  <span class="hl-blue cm"># Données brutes Parquet (READ-ONLY)</span><br>
+│   │   ├── yellow_tripdata_2023-01.parquet  <span class="cm">[~500MB → 4 blocs × 128MB]</span><br>
+│   │   ├── yellow_tripdata_2023-02.parquet<br>
+│   │   └── yellow_tripdata_2023-03.parquet<br>
+│   ├── <span class="hl-purple">processed/</span><br>
+│   │   └── features/<br>
+│   │       └── year=2023/month=01/  <span class="cm">[partitionné]</span><br>
+│   └── <span class="hl-yellow">predictions/</span><br>
+│       └── year=2023/month=01-03/<br>
+├── <span class="hl-orange">models/</span><br>
+│   └── rf_model_v1/                <span class="cm">[MLlib Pipeline sauvegardé]</span><br>
+└── <span class="hl-blue">logs/</span><br>
+    └── spark-events/               <span class="cm">[Spark History Server]</span>
+  </div>
+
+  <div class="cards-grid">
+    <div class="card">
+      <div class="card-icon">🧠</div>
+      <h3>NameNode</h3>
+      <p>Cerveau du cluster. Gère les <strong>métadonnées</strong> : où sont stockés les blocs, quel DataNode possède quoi. Ne stocke PAS les données réelles. Si le NameNode tombe → cluster inaccessible (SPOF).</p>
+      <span class="badge">metadata only</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">💾</div>
+      <h3>DataNode</h3>
+      <p>Stocke les <strong>blocs de données</strong> réels (128 MB chacun). Envoie des heartbeats au NameNode toutes les 3 secondes. Si un DataNode tombe, HDFS re-réplique automatiquement les blocs manquants.</p>
+      <span class="badge">data storage</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">📋</div>
+      <h3>Secondary NameNode</h3>
+      <p>Fait des <strong>checkpoints</strong> périodiques du journal des transactions (EditLog). N'est PAS un NameNode de secours (contrairement à ce que le nom suggère !). Fusionne fsimage + edits.</p>
+      <span class="badge">checkpoint only</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔢</div>
+      <h3>Facteur de réplication</h3>
+      <p>Par défaut <strong>3 copies</strong> de chaque bloc sur 3 DataNodes différents. Avec le rack awareness, 2 copies sur le même rack, 1 sur un rack distant. Tolérance aux pannes réseau.</p>
+      <span class="badge">durability × 3</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">📦</div>
+      <h3>Taille des blocs : 128 MB</h3>
+      <p>Bien plus grand que NTFS (4 KB) car HDFS est optimisé pour les <strong>lectures séquentielles</strong> de gros fichiers. Réduit le nombre de métadonnées à gérer par le NameNode.</p>
+      <span class="badge">vs NTFS 4KB</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">🌐</div>
+      <h3>HDFS Web UI (port 9870)</h3>
+      <p>Interface graphique pour voir : l'espace disque total/utilisé, le nombre de blocs, les DataNodes actifs, les fichiers corrompus, les logs de réplication.</p>
+      <span class="badge">localhost:9870</span>
+    </div>
+  </div>
+
+  <h3 style="margin: 2rem 0 0.8rem; color: var(--accent1); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">COMMANDES HDFS ESSENTIELLES</h3>
+  <pre><span class="cm"># Équivalents des commandes Linux</span>
+hdfs dfs -<span class="fn">ls</span> /data/raw/          <span class="cm"># ls</span>
+hdfs dfs -<span class="fn">mkdir</span> -p /data/raw/    <span class="cm"># mkdir -p</span>
+hdfs dfs -<span class="fn">rm</span> -r /data/old/       <span class="cm"># rm -rf</span>
+hdfs dfs -<span class="fn">cat</span> /data/raw/file.txt  <span class="cm"># cat</span>
+hdfs dfs -<span class="fn">mv</span> /src /dst            <span class="cm"># mv</span>
+hdfs dfs -<span class="fn">cp</span> /src /dst            <span class="cm"># cp</span>
+hdfs dfs -<span class="fn">du</span> -s -h /data/         <span class="cm"># du -sh</span>
+
+<span class="cm"># Spécifiques HDFS</span>
+hdfs dfs -<span class="fn">put</span> local.parquet /hdfs/  <span class="cm"># upload depuis local</span>
+hdfs dfs -<span class="fn">get</span> /hdfs/file local/     <span class="cm"># download vers local</span>
+hdfs dfsadmin -<span class="fn">report</span>               <span class="cm"># santé du cluster</span>
+hdfs fsck / -list-<span class="fn">corruptfileblocks</span> <span class="cm"># blocs corrompus</span>
+hdfs dfs -<span class="fn">setrep</span> 2 /data/raw/       <span class="cm"># changer réplication</span></pre>
+
+  <div class="alert alert-warn">
+    ⚠️ <strong>Différence put vs copyFromLocal :</strong> <code>hdfs dfs -put</code> accepte aussi des sources HDFS, tandis que <code>-copyFromLocal</code> est strictement depuis le filesystem local. En pratique, ils sont équivalents pour les fichiers locaux.
+  </div>
+</div>
+
+<!-- ═══════════ PANEL: SPARK ═══════════ -->
+<div class="panel" id="panel-spark">
+  <div class="section-title">
+    <div class="icon" style="background:rgba(0,229,255,0.1);color:var(--accent1)">⚡</div>
+    Spark + MLlib — Traitement distribué
+  </div>
+  <p class="section-sub">SparkSession, DataFrames distribués, pipeline MLlib RandomForest</p>
+
+  <div class="cards-grid" style="margin-bottom: 2rem;">
+    <div class="card">
+      <div class="card-icon">🔗</div>
+      <h3>Pourquoi hdfs:// et non file:// ?</h3>
+      <p>En cluster multi-nœuds, chaque executor Spark tourne sur un serveur différent. <code>file://</code> pointe vers le disque LOCAL de la machine — les autres nœuds ne peuvent pas y accéder. <code>hdfs://</code> est le seul stockage partagé par tous.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🗂️</div>
+      <h3>Partitions Spark ≈ Blocs HDFS</h3>
+      <p>Quand Spark lit un fichier HDFS, il crée <strong>1 partition par bloc</strong> (128 MB). Un fichier de 500 MB = ~4 partitions = 4 tâches parallèles. Après <code>repartition(8)</code>, on force 8 partitions pour mieux paralléliser.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🧠</div>
+      <h3>df.cache() — Pourquoi ?</h3>
+      <p>Sans cache, chaque action Spark <strong>relit les données depuis HDFS</strong>. Avec <code>df.cache()</code>, le DataFrame est maintenu en mémoire RAM des executors. Les runs suivants dans le même job sont 10-100× plus rapides.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔍</div>
+      <h3>Predicate Pushdown</h3>
+      <p>Parquet supporte le <strong>predicate pushdown</strong> : quand Spark filtre sur une colonne, il ne lit que les blocs Parquet concernés (row groups). <code>df.explain(True)</code> montre <code>PushedFilters</code> dans le plan physique.</p>
+    </div>
+  </div>
+
+  <h3 style="margin: 1.5rem 0 0.8rem; color: var(--accent3); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">PIPELINE MLLIB — RANDOMFOREST</h3>
+  <pre><span class="kw">from</span> pyspark.ml <span class="kw">import</span> Pipeline
+<span class="kw">from</span> pyspark.ml.feature <span class="kw">import</span> VectorAssembler
+<span class="kw">from</span> pyspark.ml.regression <span class="kw">import</span> RandomForestRegressor
+<span class="kw">from</span> pyspark.ml.evaluation <span class="kw">import</span> RegressionEvaluator
+
+features = [<span class="str">'trip_distance'</span>, <span class="str">'hour_of_day'</span>, <span class="str">'day_of_week'</span>,
+            <span class="str">'is_weekend'</span>, <span class="str">'is_rush_hour'</span>, <span class="str">'passenger_count'</span>]
+
+assembler = <span class="fn">VectorAssembler</span>(inputCols=features, outputCol=<span class="str">'features'</span>)
+rf = <span class="fn">RandomForestRegressor</span>(
+    featuresCol=<span class="str">'features'</span>,
+    labelCol=<span class="str">'trip_duration_min'</span>,
+    numTrees=<span class="num">100</span>,
+    maxDepth=<span class="num">10</span>
+)
+pipeline = <span class="fn">Pipeline</span>(stages=[assembler, rf])
+
+train, test = df.<span class="fn">randomSplit</span>([<span class="num">0.8</span>, <span class="num">0.2</span>], seed=<span class="num">42</span>)
+model = pipeline.<span class="fn">fit</span>(train)       <span class="cm"># entraînement distribué</span>
+preds = model.<span class="fn">transform</span>(test)    <span class="cm"># prédictions</span>
+
+<span class="cm"># Métriques</span>
+evaluator = <span class="fn">RegressionEvaluator</span>(labelCol=<span class="str">'trip_duration_min'</span>)
+rmse = evaluator.<span class="fn">evaluate</span>(preds, {evaluator.metricName: <span class="str">'rmse'</span>})
+r2   = evaluator.<span class="fn">evaluate</span>(preds, {evaluator.metricName: <span class="str">'r2'</span>})
+
+<span class="cm"># Sauvegarde dans HDFS</span>
+model.write().<span class="fn">overwrite</span>().<span class="fn">save</span>(<span class="str">'hdfs://namenode:9000/models/rf_v1'</span>)
+
+<span class="cm"># Rechargement</span>
+<span class="kw">from</span> pyspark.ml <span class="kw">import</span> PipelineModel
+loaded = PipelineModel.<span class="fn">load</span>(<span class="str">'hdfs://namenode:9000/models/rf_v1'</span>)</pre>
+
+  <div class="alert alert-info">
+    ℹ️ <strong>Feature Importances :</strong> <code>model.stages[-1].featureImportances</code> retourne un vecteur de scores. <code>trip_distance</code> est typiquement la feature la plus importante (~50%), suivi de <code>hour_of_day</code> (~20%) et <code>is_rush_hour</code> (~15%).
+  </div>
+
+  <h3 style="margin: 1.5rem 0 0.8rem; color: var(--accent2); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">RF vs RÉGRESSION LINÉAIRE</h3>
+  <table class="comp-table">
+    <tr>
+      <th>Critère</th>
+      <th>RandomForest</th>
+      <th>LinearRegression</th>
+    </tr>
+    <tr><td>Relations non-linéaires</td><td class="green">✓ Gère très bien</td><td class="orange">✗ Suppose linéarité</td></tr>
+    <tr><td>Interprétabilité</td><td class="orange">Moyenne (feature importances)</td><td class="green">Haute (coefficients)</td></tr>
+    <tr><td>Sensibilité outliers</td><td class="green">Robuste</td><td class="orange">Sensible</td></tr>
+    <tr><td>Temps d'entraînement</td><td class="orange">Plus lent</td><td class="green">Rapide</td></tr>
+    <tr><td>RMSE typique (taxi)</td><td class="green">~3-5 min</td><td class="orange">~6-9 min</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════ PANEL: CI/CD ═══════════ -->
+<div class="panel" id="panel-cicd">
+  <div class="section-title">
+    <div class="icon" style="background:rgba(167,139,250,0.1);color:var(--accent3)">🤖</div>
+    CI/CD — GitHub Actions
+  </div>
+  <p class="section-sub">Intégration continue : lint → tests → Docker build → push</p>
+
+  <div class="cicd-flow">
+    <div class="cicd-box" style="border-color:var(--accent5)">
+      <span class="cb-icon">📝</span>
+      <span class="cb-label">git push</span>
+    </div>
+    <div class="cicd-arrow">→</div>
+    <div class="cicd-box" style="border-color:var(--accent3)">
+      <span class="cb-icon">🔍</span>
+      <span class="cb-label">lint<br><small>black/flake8</small></span>
+    </div>
+    <div class="cicd-arrow">→</div>
+    <div class="cicd-box" style="border-color:var(--accent1)">
+      <span class="cb-icon">🧪</span>
+      <span class="cb-label">tests<br><small>pytest ≥80%</small></span>
+    </div>
+    <div class="cicd-arrow">→</div>
+    <div class="cicd-box" style="border-color:var(--accent2)">
+      <span class="cb-icon">🐳</span>
+      <span class="cb-label">Docker<br><small>build</small></span>
+    </div>
+    <div class="cicd-arrow">→</div>
+    <div class="cicd-box" style="border-color:var(--accent4)">
+      <span class="cb-icon">📤</span>
+      <span class="cb-label">push<br><small>Docker Hub</small></span>
+    </div>
+    <div class="cicd-arrow">→</div>
+    <div class="cicd-box" style="border-color:var(--muted)">
+      <span class="cb-icon">🚀</span>
+      <span class="cb-label">deploy<br><small>SSH/Azure</small></span>
+    </div>
+  </div>
+
+  <div class="cards-grid">
+    <div class="card">
+      <div class="card-icon">🔗</div>
+      <h3>Le mot-clé <code>needs</code></h3>
+      <p>Définit les <strong>dépendances entre jobs</strong>. <code>test: needs: lint</code> signifie que le job <em>test</em> ne démarre que si <em>lint</em> réussit. Si lint échoue → test, build et push sont tous annulés. Pipeline "fail-fast".</p>
+      <span class="badge">dependency chain</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">💾</div>
+      <h3>Cache pip (actions/cache)</h3>
+      <p>Les dépendances Python sont mises en cache entre les runs. Un "run froid" (sans cache) télécharge tout : ~2-3 min. Un "run chaud" (cache valide) : ~15 secondes. Économie 80-90% du temps.</p>
+      <span class="badge">⚡ 10x faster</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">🐳</div>
+      <h3>Condition push ≠ PR</h3>
+      <p><code>push: github.event_name != 'pull_request'</code> évite de pousser des images Docker non validées sur Docker Hub depuis une PR. On ne publie que depuis les branches protégées (main, develop) après review.</p>
+      <span class="badge">security</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">🧪</div>
+      <h3>Tests sans HDFS réel</h3>
+      <p><code>HDFS_NAMENODE='file://'</code> redirige toutes les lectures/écritures HDFS vers le filesystem local du runner GitHub. Spark fonctionne en mode <code>local[2]</code>. Rapide, sans infrastructure externe.</p>
+      <span class="badge">file:// mock</span>
+    </div>
+  </div>
+
+  <h3 style="margin: 1.5rem 0 0.8rem; color: var(--accent1); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">WORKFLOW CI — STRUCTURE CLÉS</h3>
+  <pre><span class="kw">name</span>: CI — Big Data Pipeline HDFS
+<span class="kw">on</span>:
+  push:
+    branches: [main, develop, <span class="str">'feature/**'</span>]
+  pull_request:
+    branches: [main, develop]
+
+<span class="kw">jobs</span>:
+  lint:                        <span class="cm"># job 1</span>
+    runs-on: ubuntu-latest
+    steps:
+      - run: black --check src/ tests/
+      - run: flake8 src/ --max-line-length=<span class="num">100</span>
+
+  test:
+    needs: lint                <span class="cm"># attend lint ✓</span>
+    env:
+      HDFS_NAMENODE: <span class="str">'file://'</span>  <span class="cm"># pas de vrai HDFS</span>
+    steps:
+      - run: pytest tests/ --cov=src --cov-fail-under=<span class="num">80</span>
+
+  build:
+    needs: test                <span class="cm"># attend tests ✓</span>
+    steps:
+      - uses: docker/build-push-action@v5
+        with:
+          push: <span class="str">${{ github.event_name != 'pull_request' }}</span></pre>
+
+  <div class="alert alert-tip">
+    💡 <strong>Git Flow dans ce projet :</strong> <code>feature/*</code> → PR → <code>develop</code> (CI obligatoire) → PR → <code>main</code> (CI + review) → CD déclenché automatiquement.
+  </div>
+</div>
+
+<!-- ═══════════ PANEL: DEPLOY ═══════════ -->
+<div class="panel" id="panel-deploy">
+  <div class="section-title">
+    <div class="icon" style="background:rgba(52,211,153,0.1);color:var(--accent4)">🚀</div>
+    Déploiement — SSH vs Azure
+  </div>
+  <p class="section-sub">Option A : VM Linux + Docker. Option B : Azure HDInsight + ADLS Gen2</p>
+
+  <table class="comp-table" style="margin-bottom: 2rem;">
+    <tr>
+      <th>Critère</th>
+      <th>Option A — SSH (VM Linux)</th>
+      <th>Option B — Azure HDInsight</th>
+    </tr>
+    <tr><td>Coût</td><td>20-80 €/mois fixe</td><td>0.30-2 €/h (on-demand)</td></tr>
+    <tr><td>Scalabilité</td><td class="orange">Manuelle</td><td class="green">Auto-scaling intégré</td></tr>
+    <tr><td>Maintenance</td><td class="orange">Totale (OS, sécurité)</td><td class="green">Gérée par Microsoft</td></tr>
+    <tr><td>Stockage</td><td>HDFS local sur VM</td><td class="green">ADLS Gen2 (illimité, HA)</td></tr>
+    <tr><td>Contrôle</td><td class="green">Total</td><td class="orange">Limité aux paramètres</td></tr>
+    <tr><td>Deploy-mode Spark</td><td><code>client</code></td><td><code>cluster</code></td></tr>
+    <tr><td>Recommandé pour</td><td>Apprentissage, on-premise</td><td class="green">Production, équipes</td></tr>
+  </table>
+
+  <div class="cards-grid">
+    <div class="card">
+      <div class="card-icon">🔑</div>
+      <h3>Clé SSH dédiée au déploiement</h3>
+      <p>On génère une clé ED25519 <strong>séparée</strong> (jamais la clé personnelle <code>~/.ssh/id_ed25519</code>). Si la clé de déploiement est compromise, on la révoque sans impacter l'accès personnel. La clé privée va dans les GitHub Secrets.</p>
+      <span class="badge">security isolation</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">☁️</div>
+      <h3>WASB vs ADLS Gen2</h3>
+      <p><strong>WASB</strong> (Azure Blob) : stockage objet basique, sans hiérarchie réelle de dossiers. <strong>ADLS Gen2</strong> (<code>abfss://</code>) : supporte les vrais répertoires, ACLs POSIX, et est <strong>optimisé pour Spark</strong> (meilleure latence, atomic rename).</p>
+      <span class="badge">prefer abfss://</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">⚙️</div>
+      <h3>--deploy-mode cluster</h3>
+      <p>En mode <code>client</code>, le driver Spark tourne sur la machine qui lance la commande (runner GitHub → timeout). En mode <code>cluster</code>, le driver tourne <strong>sur le cluster HDInsight</strong> → le runner peut se déconnecter, le job continue.</p>
+      <span class="badge">resilience</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">💰</div>
+      <h3>Optimisation coûts Azure</h3>
+      <p>HDInsight est facturé à l'heure. Entre deux déploiements, on peut <code>az hdinsight resize --workernode-count 0</code> pour éteindre les workers. Le cluster reste provisionné mais ne coûte que le stockage ADLS2.</p>
+      <span class="badge">cost optimization</span>
+    </div>
+  </div>
+
+  <h3 style="margin: 1.5rem 0 0.8rem; color: var(--accent2); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">ROLLBACK AUTOMATIQUE — SSH</h3>
+  <pre><span class="cm"># Dans le script SSH du workflow CD :</span>
+<span class="kw">PREV_IMAGE</span>=$(docker inspect --format=<span class="str">'{{.Config.Image}}'</span> jupyter-spark <span class="num">2</span>>/dev/null || echo <span class="str">""</span>)
+docker-compose up -d
+sleep <span class="num">30</span>
+
+<span class="cm"># Health check</span>
+<span class="kw">if</span> ! curl -f http://localhost:<span class="num">8080</span> 2>/dev/null; then
+  echo <span class="str">"❌ Health check failed — rollback..."</span>
+  <span class="kw">if</span> [ -n <span class="str">"$PREV_IMAGE"</span> ]; then
+    sed -i <span class="str">"s|image:.*|image: $PREV_IMAGE|"</span> docker-compose.yml
+    docker-compose up -d
+    echo <span class="str">"✅ Rolled back to $PREV_IMAGE"</span>
+  <span class="kw">fi</span>
+  exit <span class="num">1</span>
+<span class="kw">fi</span></pre>
+</div>
+
+<!-- ═══════════ PANEL: QUIZ ═══════════ -->
+<div class="panel" id="panel-quiz">
+  <div class="section-title">
+    <div class="icon" style="background:rgba(255,107,53,0.1);color:var(--accent2)">🎯</div>
+    Quiz — Testez vos connaissances
+  </div>
+  <p class="section-sub">10 questions sur le pipeline Big Data CI/CD</p>
+
+  <div class="progress-bar"><div class="progress-fill" id="quiz-progress" style="width:0%"></div></div>
+  <div id="quiz-counter" style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--muted);margin-bottom:1.5rem">0 / 10 répondues</div>
+
+  <div id="quiz-container"></div>
+
+  <div class="quiz-score" id="quiz-score">
+    <div class="score-num" id="score-display">0/10</div>
+    <p style="color:var(--muted);margin-top:0.5rem" id="score-msg"></p>
+  </div>
+</div>
+
+<!-- ═══════════ PANEL: GLOSSARY ═══════════ -->
+<div class="panel" id="panel-glossary">
+  <div class="section-title">
+    <div class="icon" style="background:rgba(52,211,153,0.1);color:var(--accent4)">📖</div>
+    Glossaire technique
+  </div>
+  <p class="section-sub">Tous les termes clés du TP, expliqués simplement</p>
+
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-top:1rem">
+
+    <div class="glossary-item">
+      <div class="glossary-term">🔵 HDFS — Hadoop Distributed File System</div>
+      <div class="glossary-def">Système de fichiers distribué qui découpe les gros fichiers en blocs de 128 MB, répliqués sur plusieurs machines. Conçu pour stocker des pétaoctets avec tolérance aux pannes.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">⚡ Spark / PySpark</div>
+      <div class="glossary-def">Moteur de traitement distribué en mémoire. Lit depuis HDFS, distribue le calcul sur plusieurs machines (executors), 100x plus rapide que MapReduce pour les données en RAM.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">🤖 MLlib</div>
+      <div class="glossary-def">Bibliothèque de Machine Learning distribuée de Spark. Les algorithmes (RandomForest, etc.) s'exécutent en parallèle sur le cluster. Les modèles sont sauvegardés dans HDFS.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">🐳 Docker / docker-compose</div>
+      <div class="glossary-def">Containerisation : chaque service (NameNode, DataNode, Spark Master, Jupyter) tourne dans un container isolé. docker-compose orchestre l'ensemble du cluster localement.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">🤖 CI/CD — Continuous Integration / Delivery</div>
+      <div class="glossary-def">CI : automatise les tests à chaque push. CD : automatise le déploiement sur chaque merge dans main. GitHub Actions est le moteur qui exécute ces workflows.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">☁️ Azure HDInsight</div>
+      <div class="glossary-def">Cluster Hadoop/Spark managé par Microsoft Azure. Provisionné en ~15 min, facturé à l'heure, avec ADLS Gen2 comme stockage distribué (équivalent cloud de HDFS).</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">📦 Parquet</div>
+      <div class="glossary-def">Format de fichier columnar binaire. Compression native, predicate pushdown, lecture partielle des colonnes. Bien plus efficace que CSV pour les workloads analytiques.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">🔀 Shuffle</div>
+      <div class="glossary-def">Redistribution des données entre les partitions Spark (lors d'un groupBy, join, etc.). Opération coûteuse car implique des transferts réseau. AQE optimise automatiquement les shuffles.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">🔒 GitHub Secrets</div>
+      <div class="glossary-def">Variables chiffrées stockées dans GitHub, injectées dans les workflows GitHub Actions. Jamais visibles dans les logs. Contiennent : clés SSH, tokens Docker, credentials Azure.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">🌿 Git Flow</div>
+      <div class="glossary-def">Convention de branches : main (production), develop (intégration), feature/* (nouvelles fonctionnalités). Les PRs vers main déclenchent le CI ; les merges déclenchent le CD.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">📊 AQE — Adaptive Query Execution</div>
+      <div class="glossary-def">Optimisation Spark (≥3.0) qui adapte le plan d'exécution en temps réel selon les statistiques collectées pendant l'exécution. Réduit le nombre de partitions de shuffle, corrige les skews.</div>
+    </div>
+    <div class="glossary-item" style="border:none">
+      <div class="glossary-term">🧪 pytest + coverage</div>
+      <div class="glossary-def">Framework de tests Python. <code>--cov=src</code> mesure quelle proportion du code est exécutée par les tests. Le seuil de 80% est imposé par le CI (<code>--cov-fail-under=80</code>).</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+// ─── TABS ─────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ─── PIPELINE DETAILS ────────────────
+function toggleDetail(step) {
+  const detail = step.querySelector('.pipe-detail');
+  if (detail) detail.classList.toggle('open');
+}
+
+// ─── QUIZ ────────────────────────────
+const questions = [
+  {
+    q: "Quel composant HDFS stocke les <span style='color:var(--accent1)'>métadonnées</span> (pas les données réelles) ?",
+    opts: ["DataNode", "NameNode", "Secondary NameNode", "Spark Master"],
+    ans: 1,
+    fb: "Le NameNode ne stocke QUE les métadonnées : liste des fichiers, localisation des blocs, facteur de réplication. Les données réelles sont sur les DataNodes."
+  },
+  {
+    q: "Quelle est la <span style='color:var(--accent1)'>taille par défaut</span> d'un bloc HDFS ?",
+    opts: ["4 KB (NTFS)", "64 MB", "128 MB", "1 GB"],
+    ans: 2,
+    fb: "128 MB par défaut. Ce choix optimise les lectures séquentielles de gros fichiers et réduit le nombre de métadonnées gérées par le NameNode."
+  },
+  {
+    q: "Pourquoi utilise-t-on <span style='color:var(--accent1)'>HDFS_NAMENODE='file://'</span> dans les tests CI ?",
+    opts: ["Pour tester HDFS en mode sécurisé", "Pour éviter d'avoir un vrai cluster HDFS en CI", "Pour améliorer les performances", "C'est une erreur de config"],
+    ans: 1,
+    fb: "En CI (GitHub Actions), il n'y a pas de cluster Hadoop. 'file://' redirige vers le filesystem local du runner, permettant aux tests Spark de fonctionner sans HDFS réel."
+  },
+  {
+    q: "Le mot-clé <span style='color:var(--accent1)'>needs: lint</span> dans GitHub Actions signifie :",
+    opts: ["Le job lint s'exécute après test", "Le job ne démarre que si lint réussit", "Les deux jobs s'exécutent en parallèle", "Lint est optionnel"],
+    ans: 1,
+    fb: "needs crée une dépendance : si lint échoue, tous les jobs qui en dépendent (test, build, deploy) sont automatiquement annulés. Pipeline fail-fast."
+  },
+  {
+    q: "Quelle commande Spark permet de voir le <span style='color:var(--accent1)'>predicate pushdown</span> Parquet ?",
+    opts: ["df.show()", "df.printSchema()", "df.explain(True)", "df.describe()"],
+    ans: 2,
+    fb: "df.explain(True) affiche le plan d'exécution complet. Le predicate pushdown apparaît sous 'PushedFilters' dans le plan physique : Spark évite de lire les row groups inutiles."
+  },
+  {
+    q: "Pourquoi <span style='color:var(--accent1)'>df.cache()</span> accélère-t-il les runs suivants ?",
+    opts: ["Il compresse les données", "Il maintient le DataFrame en RAM des executors", "Il réduit le nombre de partitions", "Il désactive les shuffles"],
+    ans: 1,
+    fb: "Sans cache, chaque action Spark relit les données depuis HDFS. Avec cache(), le DataFrame est maintenu en mémoire RAM. Les opérations suivantes (ML training, évaluations) sont 10-100x plus rapides."
+  },
+  {
+    q: "Pour le déploiement Azure, <span style='color:var(--accent1)'>--deploy-mode cluster</span> signifie :",
+    opts: ["Spark tourne sur toutes les machines", "Le driver Spark tourne sur le cluster HDInsight", "Le code est déployé depuis un cluster", "Docker est utilisé en mode cluster"],
+    ans: 1,
+    fb: "En mode 'cluster', le driver Spark tourne sur le cluster distant. Le runner GitHub Actions peut se déconnecter — le job continue. En mode 'client', si le runner timeout, le job s'arrête."
+  },
+  {
+    q: "Quelle est la <span style='color:var(--accent1)'>variable cible</span> du modèle RandomForest dans ce TP ?",
+    opts: ["fare_amount", "trip_distance", "trip_duration_min", "total_amount"],
+    ans: 2,
+    fb: "trip_duration_min est calculée : (tpep_dropoff_datetime - tpep_pickup_datetime) / 60. C'est la durée du trajet en minutes, que le modèle cherche à prédire."
+  },
+  {
+    q: "Quelle est la différence entre <span style='color:var(--accent1)'>WASB</span> et <span style='color:var(--accent1)'>ADLS Gen2</span> sur Azure ?",
+    opts: ["WASB est plus rapide", "ADLS Gen2 supporte les vrais répertoires et ACLs POSIX", "WASB est recommandé pour Spark", "Il n'y a pas de différence"],
+    ans: 1,
+    fb: "ADLS Gen2 (abfss://) supporte une vraie hiérarchie de répertoires, les ACLs POSIX et est optimisé pour Spark (atomic rename, meilleure latence). WASB est l'ancien système basé sur des préfixes de blobs."
+  },
+  {
+    q: "Pourquoi générer une <span style='color:var(--accent1)'>clé SSH dédiée</span> pour le déploiement (et non réutiliser sa clé personnelle) ?",
+    opts: ["Les clés personnelles sont trop courtes", "Pour l'isolation : révocation sans impact sur l'accès personnel", "GitHub n'accepte pas les clés personnelles", "C'est juste une convention cosmétique"],
+    ans: 1,
+    fb: "Principe du moindre privilège : si la clé de déploiement est compromise (ex: secret GitHub leaké), on la révoque sans impacter sa clé personnelle. La clé de déploiement n'a que les droits nécessaires."
+  }
+];
+
+let answered = 0;
+let score = 0;
+
+function buildQuiz() {
+  const container = document.getElementById('quiz-container');
+  questions.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.className = 'quiz-card';
+    div.innerHTML = `
+      <div class="quiz-q"><span>Q${i+1}.</span> ${q.q}</div>
+      <div class="quiz-options">
+        ${q.opts.map((o, j) => `<button class="quiz-opt" onclick="answerQ(this, ${i}, ${j})">${o}</button>`).join('')}
+      </div>
+      <div class="quiz-feedback" id="fb-${i}">💬 ${q.fb}</div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function answerQ(btn, qIdx, optIdx) {
+  const card = btn.closest('.quiz-card');
+  if (card.dataset.answered) return;
+  card.dataset.answered = '1';
+  answered++;
+
+  const opts = card.querySelectorAll('.quiz-opt');
+  opts.forEach(o => o.disabled = true);
+  opts[questions[qIdx].ans].classList.add('correct');
+
+  if (optIdx === questions[qIdx].ans) {
+    score++;
+  } else {
+    btn.classList.add('wrong');
+  }
+
+  document.getElementById('fb-' + qIdx).classList.add('show');
+  document.getElementById('quiz-counter').textContent = `${answered} / ${questions.length} répondues`;
+  document.getElementById('quiz-progress').style.width = (answered / questions.length * 100) + '%';
+
+  if (answered === questions.length) {
+    const scoreEl = document.getElementById('quiz-score');
+    scoreEl.classList.add('show');
+    document.getElementById('score-display').textContent = `${score}/${questions.length}`;
+    const msgs = ['Continue à réviser ! 📚', 'Bon début ! 💪', 'Pas mal ! 🎯', 'Très bien ! ⭐', 'Excellent ! 🏆'];
+    document.getElementById('score-msg').textContent = msgs[Math.floor(score / questions.length * 4)];
+  }
+}
+
+buildQuiz();
+</script>
+</body>
+</html>
