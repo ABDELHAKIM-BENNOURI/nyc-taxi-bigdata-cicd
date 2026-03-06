@@ -1,12 +1,14 @@
 # Données (stockées dans HDFS, pas dans Git)
-data/raw/
-data/processed/
-*.parquet
-*.csv
+data/raw/*.parquet
+data/raw/*.csv
+data/processed/*.parquet
+data/processed/*.csv
 
 # Modèles ML
-models/
-*.pkl
+# Modèles ML (le dossier est gardé, mais pas son contenu)
+models/*.pkl
+models/*.zip
+models/rf_model_v1/
 
 # Python
 __pycache__/
